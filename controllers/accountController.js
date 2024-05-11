@@ -1,33 +1,45 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function createAccount(req, res) {
-  const { userId, type } = req.body;
+async function createAccount(request, reply) {
+  const { userId, type } = request.body;
 
   try {
-    // Membuat akun baru dalam database menggunakan Prisma
     const newAccount = await prisma.paymentAccount.create({
       data: {
         userId,
         type,
-        balance: 0, // Saldo awal bisa diatur sesuai kebutuhan
+        balance: 0, 
       },
     });
-    
-    // Mengirim respons ke klien
-    res.status(201).json({
+  
+    reply.code(201).send({
       success: true,
       message: 'Payment account created successfully',
       data: newAccount,
     });
   } catch (error) {
-    // Mengirim respons ke klien jika terjadi kesalahan
     console.error('Error creating payment account:', error);
-    res.status(500).json({
+    reply.code(500).send({
       success: false,
       error: 'Error creating payment account',
     });
   }
 }
 
-module.exports = { createAccount };
+async function getAllAccounts(req, res) {
+  const { userId } = req.params;
+
+  try {
+    const accounts = await prisma.paymentAccount.findMany({
+      where: { userId },
+    });
+
+    res.send(accounts);
+  } catch (error) {
+    console.error('Error fetching accounts:', error);
+    res.status(500).send({ error: 'Internal server error' }); 
+  }
+}
+
+module.exports = { createAccount, getAllAccounts };

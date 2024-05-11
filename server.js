@@ -1,4 +1,8 @@
-const fastify = require('fastify')(); // Import and initialize Fastify
+const fastify = require('fastify')();
+const { authenticateToken } = require('./middleware/authenticateToken');
+const { login } = require('./controllers/authController');
+const { createAccount, getAllAccounts } = require('./controllers/accountController');
+const { sendTransaction, withdrawTransaction, getAccountTransactions } = require('./controllers/transactionController');
 
 // Import Fastify form body parser plugin
 fastify.register(require('fastify-formbody'));
@@ -9,49 +13,13 @@ fastify.addHook('onRequest', (request, reply, done) => {
   done();
 });
 
-const { register, login } = require('./controllers/authController');
-const { createAccount } = require('./controllers/accountController');
-const { processTransaction } = require('./services/paymentManager');
-
-fastify.post('/register', register);
+// Define routes
 fastify.post('/login', login);
-
-fastify.post('/payment-account', async (request, reply) => {
-  try {
-    const accountData = request.body;
-    const result = await createAccount(accountData);
-    reply.send(result);
-  } catch (error) {
-    console.error('Failed to create payment account:', error);
-    reply.status(500).send({ error: 'Failed to create payment account' });
-  }
-});
-
-fastify.post('/send', async (request, reply) => {
-  const { userId, accountId, amount, toAddress } = request.body;
-
-  try {
-    const transaction = { userId, accountId, amount, toAddress, status: 'Pending' };
-    await processTransaction(transaction); // Process transaction asynchronously
-    reply.send({ message: 'Transaction sent successfully' });
-  } catch (error) {
-    console.error('Error sending transaction:', error);
-    reply.status(500).send({ error: 'Error sending transaction' });
-  }
-});
-
-fastify.post('/withdraw', async (request, reply) => {
-  const { userId, accountId, amount } = request.body;
-
-  try {
-    const transaction = { userId, accountId, amount, status: 'Pending' };
-    await processTransaction(transaction); // Process transaction asynchronously
-    reply.send({ message: 'Withdrawal successful' });
-  } catch (error) {
-    console.error('Error processing withdrawal:', error);
-    reply.status(500).send({ error: 'Error processing withdrawal' });
-  }
-});
+fastify.post('/payment-account', { preHandler: authenticateToken }, createAccount);
+fastify.get('/accounts', { preHandler: authenticateToken }, getAllAccounts);
+fastify.get('/accounts/:accountId/transactions', { preHandler: authenticateToken }, getAccountTransactions);
+fastify.post('/send', { preHandler: authenticateToken }, sendTransaction);
+fastify.post('/withdraw', { preHandler: authenticateToken }, withdrawTransaction);
 
 // Start the server
 const start = async () => {
