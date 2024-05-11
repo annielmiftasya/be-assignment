@@ -1,6 +1,6 @@
 const fastify = require('fastify')();
 const { authenticateToken } = require('./middleware/authenticateToken');
-const { login } = require('./controllers/authController');
+const { login, register } = require('./controllers/authController');
 const { createAccount, getAllAccounts } = require('./controllers/accountController');
 const { sendTransaction, withdrawTransaction, getAccountTransactions } = require('./controllers/transactionController');
 
@@ -15,6 +15,7 @@ fastify.addHook('onRequest', (request, reply, done) => {
 
 // Define routes
 fastify.post('/login', login);
+fastify.post('/register', register);
 fastify.post('/payment-account', { preHandler: authenticateToken }, createAccount);
 fastify.get('/accounts', { preHandler: authenticateToken }, getAllAccounts);
 fastify.get('/accounts/:accountId/transactions', { preHandler: authenticateToken }, getAccountTransactions);
